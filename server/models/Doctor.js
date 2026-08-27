@@ -1,43 +1,45 @@
-// This file defines what a "Doctor" record looks like in our database.
-
 import mongoose from "mongoose";
 
 const doctorSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-  },
   email: {
     type: String,
-    required: true,
+    require: true,
     unique: true,
+    lowercase: true,
+    index: true
   },
-  qualification: {
+
+  password: {
     type: String,
-    required: true,
+    require: true,
+    select: false
   },
-  // Kept simple as plain text for now (e.g. "Cardiology").
-  // Later, once you are comfortable, this can become a link to a Department.
-  department: {
+  name: { type: String, require: true, trim: true },
+
+  specialization: { type: String, default: "" },
+
+  imageUrl: { type: String, default: null },
+  imagePublicId: { type: String, default: null },
+
+  experience: { type: String, default: "" },
+  qualifications: { type: String, default: "" },
+  location: { type: String, default: "" },
+  about: { type: String, default: "" },
+
+  fee: { type: Number, default: 0 },
+  availability: {
     type: String,
-    required: true,
+    enum: ["Available", "Unavailable"],
+    default: "Available",
   },
-  experience: {
-    type: Number,
-    default: 0,
-  },
-  consultationFee: {
-    type: Number,
-    required: true,
-  },
-  mobile: {
-    type: String,
-    required: true,
-  },
-}, {
-  timestamps: true,
+
+  schedule: { type: Map, of: [String], default: {} },
+  success: { type: String, default: "" },
+  patients: { type: String, default: "" },
+  rating: { type: Number, default: 0 },
 });
 
-const Doctor = mongoose.model("Doctor", doctorSchema);
+doctorSchema.index({ name: "text", speechSynthesis: "text" });
+const Doctor = mongoose.model.Doctor || mongoose.model("Doctor", doctorSchema);
 
-export default Doctor;
+export default Doctor
