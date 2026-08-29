@@ -120,7 +120,7 @@ export async function createDoctor(req, res) {
     }, secret, { expiresIn: "7d" });
 
     const out = normalizeDocForClient(doc.toObject());
-    delete out.passowrd;
+    delete out.password;
 
     return res.status(201).json({
       success: true,
@@ -190,7 +190,7 @@ export const getDoctors = async (req, res) => {
           }
         }
       },
-      { $project: { appointments: 0 } },
+      { $project: { appointments: 0, password: 0 } },
       { $sort: { name: 1 } },
       { $skip: skip },
       { $limit: limit }
@@ -258,7 +258,7 @@ export async function updateDoctor(req, res) {
     const { id } = req.params;
     const body = req.body || {};
 
-    if (!req.doctor || String(req.doctor._id || req.doctor.id) !== String(id)) {
+    if (!req.isAdmin && (!req.doctor || String(req.doctor._id || req.doctor.id) !== String(id))) {
       return res.status(403).json({ success: false, message: "Not authorized to update this doctor" });
     }
 
@@ -343,7 +343,7 @@ export async function toggleAvilability(req, res) {
   try {
     const { id } = req.params;
 
-    if (!req.doctor || String(req.doctor._id || req.doctor.id) !== String(id)) {
+    if (!req.isAdmin && (!req.doctor || String(req.doctor._id || req.doctor.id) !== String(id))) {
       return res.status(403).json({ success: false, message: "Not authorized to update this doctor" });
     }
 
@@ -359,7 +359,7 @@ export async function toggleAvilability(req, res) {
 
     await doc.save();
     const out = normalizeDocForClient(doc.toObject());
-    delete out.passowrd;
+    delete out.password;
     return res.json({ success: true, data: out });
 
   } catch (err) {
@@ -379,7 +379,7 @@ export async function doctorLogin(req, res) {
       message: "Email and password are reqired"
     });
 
-    const doc = await Doctor.findOne({ email: email.toLowerCase() }).select("+ password");
+    const doc = await Doctor.findOne({ email: email.toLowerCase() }).select("+password");
     console.log("doc :", doc)
     console.log("email :", email)
     console.log('pass :', password)

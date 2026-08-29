@@ -3,17 +3,17 @@ import Doctor from "../models/Doctor.js"
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
-export default async function doctorAuth(req, res, next) {
-
+// Allows two kinds of callers through to doctor update/toggle routes:
+//  1. An admin (User with role "admin") — can manage any doctor.
+//  2. The doctor themselves (Doctor JWT, role "doctor") — can only manage their own record.
+export default async function adminOrDoctorAuth(req, res, next) {
     const authHeader = req.headers.authorization;
-
-    // Check token
 
     if (!authHeader || !authHeader.startsWith("Bearer")) {
         return res.status(401).json({
             success: false,
-            message: "Doctor not authorized , token missing."
-        })
+            message: "Not authorized, token missing."
+        });
     }
 
     const token = authHeader.split(" ")[1];
@@ -21,32 +21,19 @@ export default async function doctorAuth(req, res, next) {
     try {
         const payload = jwt.verify(token, JWT_SECRET);
 
-        // Admins are allowed to manage any doctor record.
         if (payload.role === "admin") {
-            const targetId = req.params.id;
-            const doctor = targetId ? await Doctor.findById(targetId).select("-password") : null;
-            if (targetId && !doctor) {
-                return res.status(404).json({
-                    success: false,
-                    message: "Doctor not found"
-                });
-            }
-            req.doctor = doctor;
             req.isAdmin = true;
             return next();
         }
 
-        if (payload.role && payload.role !== "doctor") {
+        if (payload.role !== "doctor") {
             return res.status(403).json({
                 success: false,
-                message: "Access Denied (not a doctor)"
+                message: "Access denied."
             });
         }
 
-        // Fetch doctor
-
         const doctor = await Doctor.findById(payload.id).select("-password");
-
         if (!doctor) {
             return res.status(401).json({
                 success: false,
@@ -54,13 +41,12 @@ export default async function doctorAuth(req, res, next) {
             });
         }
         req.doctor = doctor;
-        next();
+        return next();
     } catch (err) {
-        console.error("Doctor JWT verification failed :", err)
+        console.error("adminOrDoctorAuth JWT verification failed:", err);
         return res.status(401).json({
             success: false,
             message: "Token invalid or missing or expired"
-        })
+        });
     }
-
 }

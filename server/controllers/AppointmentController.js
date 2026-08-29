@@ -1,18 +1,18 @@
+import Stripe from "stripe";
 import Appointment from "../models/Appointment.js";
 import Doctor from "../models/Doctor.js";
 import dotenv from 'dotenv'
 
-import { authenticateRequest, getAuth } from "@clerk/express";
+import { getAuth } from "@clerk/express";
 import { clerkClient } from "@clerk/clerk-sdk-node";
-import { Suspense } from "react";
 dotenv.config();
 
-const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 const FRONTEND_URL = process.env.FRONTEND_URL;
 const MAJOR_ADMIN_ID = process.env.MAJOR_ADMIN_ID;
-const stripe = STRIPE_KEY ? new Stripe(STRIPE_KEY, { apiVersion: "2023-10-16" }) : null;
+const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY, { apiVersion: "2023-10-16" }) : null;
 
-// HELPERS 
+// HELPERS
 // This function will return a finite number
 const safeNumber = (v) => {
     const n = Number(v);
@@ -20,7 +20,6 @@ const safeNumber = (v) => {
 };
 
 // Create frontend url
-
 const buildFrontendBase = (req) => {
     if (FRONTEND_URL) return FRONTEND_URL.replace(/\/$/, "");
     const origin = req.get("origin") || req.get("referer");
@@ -30,7 +29,7 @@ const buildFrontendBase = (req) => {
     return null;
 };
 
-// this function will get the user from clerk and return the user detals
+// this function will get the user from clerk and return the user details
 function resolveClerkUserId(req) {
     try {
         const auth = req.auth || {};
@@ -48,9 +47,7 @@ function resolveClerkUserId(req) {
 }
 
 // To getAppointments
-
 export const getAppointments = async (req, res) => {
-
     try {
         const { doctorId, mobile, status, search = "", limit: limitRaw = 50, page: pageRaw = 1, patientClerkId, createdBy } = req.query;
         const limit = Math.min(200, Math.max(1, parseInt(limitRaw, 10) || 50));
@@ -77,24 +74,23 @@ export const getAppointments = async (req, res) => {
             success: true,
             appointment: items,
             meta: { page, limit, total, count: items.length }
-        })
+        });
 
     } catch (err) {
         console.error("GetAppointment error:", err);
         return res.status(500).json({
             success: false,
             message: "Server Error"
-        })
+        });
     }
-}
+};
 
-// to getAppointment by patient 
-
+// to getAppointments by patient
 export const getAppointmentsByPatient = async (req, res) => {
     try {
-        const queryCreatedBy = res.query.createdBy || null
-        const clerkUsedId = req.auth?.userId || null;
-        const resolvedCreatedBy = queryCreatedBy || clerkUsedId || null;
+        const queryCreatedBy = req.query.createdBy || null;
+        const clerkUserId = req.auth?.userId || null;
+        const resolvedCreatedBy = queryCreatedBy || clerkUserId || null;
 
         console.log('resolvedCreatedBy (query or req.auth.userId):', resolvedCreatedBy);
 
@@ -109,7 +105,7 @@ export const getAppointmentsByPatient = async (req, res) => {
         if (resolvedCreatedBy) filter.createdBy = resolvedCreatedBy;
         if (req.query.mobile) filter.mobile = req.query.mobile;
 
-        const appointments = await Appointment.find(filter).sort({ data: 1, time: 1 }).lean();
+        const appointments = await Appointment.find(filter).sort({ date: 1, time: 1 }).lean();
         return res.json({
             success: true, appointments
         });
@@ -119,12 +115,11 @@ export const getAppointmentsByPatient = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: "Server Error"
-        })
+        });
     }
-}
+};
 
-// to create an appointment 
-
+// to create an appointment
 export const creatAppointment = async (req, res) => {
     try {
         const {
@@ -147,14 +142,13 @@ export const creatAppointment = async (req, res) => {
             doctorImagePublicId: doctorImagePublicIdFromBody,
         } = req.body || {};
 
-        const clerkUsedId = resolveClerkUserId(req);
-        if (!clerkUsedId) return res.status(401).json({
+        const clerkUserId = resolveClerkUserId(req);
+        if (!clerkUserId) return res.status(401).json({
             success: false,
             message: "Authentication is required"
         });
 
         if (!doctorId || !patientName || !mobile || !date || !time) {
-
             return res.status(400).json({
                 success: false,
                 message: "All fields are required"
@@ -170,11 +164,10 @@ export const creatAppointment = async (req, res) => {
         }
 
         // Duplicate booking prevention
-
         const existingBooking = await Appointment.findOne({
             doctorId,
-            createdBy,
-            data: String(data),
+            createdBy: clerkUserId,
+            date: String(date),
             time: String(time),
             status: { $ne: "Canceled" },
         }).lean();
@@ -182,14 +175,13 @@ export const creatAppointment = async (req, res) => {
         if (existingBooking) {
             return res.status(409).json({
                 success: false,
-                message: "You alredy have an appointment with this doctor at the selected solt"
+                message: "You already have an appointment with this doctor at the selected slot"
             });
         }
 
         let doctor = null;
         try {
             doctor = await Doctor.findById(doctorId).lean();
-
         } catch (e) {
             console.warn("Doctor lookup failed:", e?.message || e);
         }
@@ -198,6 +190,7 @@ export const creatAppointment = async (req, res) => {
             success: false,
             message: "Doctor not found"
         });
+
         // Resolve owner, names, images, etc.
         let resolvedOwner = ownerFromBody || doctor.owner || null;
         if (!resolvedOwner) resolvedOwner = MAJOR_ADMIN_ID || String(doctorId);
@@ -314,7 +307,7 @@ export const creatAppointment = async (req, res) => {
             const created = await Appointment.create({
                 ...base,
                 sessionId: session.id,
-                payment: { ...base.payment, providerId: session.payment_intent || session.paymentIntent || null },
+                payment: { ...base.payment, providerId: session.payment_intent || null },
                 status: "Pending",
             });
             return res.status(201).json({ success: true, appointment: created, checkoutUrl: session.url || null });
@@ -328,8 +321,7 @@ export const creatAppointment = async (req, res) => {
     }
 };
 
-// to conform the online payment and make it paid
-
+// to confirm the online payment and mark it paid
 export const confirmPayment = async (req, res) => {
     try {
         const { session_id } = req.query;
@@ -346,8 +338,7 @@ export const confirmPayment = async (req, res) => {
 
         let session;
         try {
-            session = await stripe.checkout.session.retrieve(session_id);
-
+            session = await stripe.checkout.sessions.retrieve(session_id);
         } catch (e) {
             console.error("Stripe retrieve session error :", e);
             return res.status(404).json({
@@ -365,16 +356,15 @@ export const confirmPayment = async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: "Payment not completed"
-            })
+            });
         }
 
-        // confirmPayment
         // Try match by sessionId first
         let appt = await Appointment.findOneAndUpdate(
             { sessionId: session_id },
             {
                 "payment.status": "Paid",
-                "payment.providerId": session.payment_intent || session.payment_intent_id || null,
+                "payment.providerId": session.payment_intent || null,
                 status: "Confirmed",
                 paidAt: new Date(),
             },
@@ -432,10 +422,9 @@ export const confirmPayment = async (req, res) => {
         console.error("confirmPayment Error:", err);
         return res.status(500).json({ success: false, message: "Server error" });
     }
-}
+};
 
 // to update an appointment
-
 export const updateAppointment = async (req, res) => {
     try {
         const { id } = req.params;
@@ -447,7 +436,6 @@ export const updateAppointment = async (req, res) => {
             message: "Appointment not found"
         });
 
-        //updateAppointment 
         const terminal = appt.status === "Completed" || appt.status === "Canceled";
         if (terminal && body.status && body.status !== appt.status) {
             return res.status(400).json({ success: false, message: "Cannot change status of a completed/canceled appointment" });
@@ -468,7 +456,7 @@ export const updateAppointment = async (req, res) => {
         }
 
         const updated = await Appointment.findByIdAndUpdate(id, update,
-            { new: true, runValidator: true }
+            { new: true, runValidators: true }
         ).populate({ path: "doctorId", select: "name imageUrl" }).lean();
 
         return res.json({ success: true, appointment: updated });
@@ -477,21 +465,19 @@ export const updateAppointment = async (req, res) => {
         console.error("updatedAppointment Error:", err);
         return res.status(500).json({ success: false, message: "Server error" });
     }
-}
+};
 
 // to cancelAppointment
-
 export const cancelAppointment = async (req, res) => {
     try {
         const { id } = req.params;
-        const body = req.body || {};
         const appt = await Appointment.findById(id);
 
         if (!appt) return res.status(404).json({
             success: false,
             message: "Appointment not found"
         });
-        appt.status = "canceled";
+        appt.status = "Canceled";
         await appt.save();
         return res.json({ success: true, appointment: appt });
 
@@ -499,10 +485,9 @@ export const cancelAppointment = async (req, res) => {
         console.error("CancelAppointment Error:", err);
         return res.status(500).json({ success: false, message: "Server error" });
     }
-}
+};
 
 // to get stats
-
 export const getStats = async (req, res) => {
     try {
         const total = await Appointment.countDocuments();
@@ -510,23 +495,21 @@ export const getStats = async (req, res) => {
         const paidAgg = await Appointment.aggregate([{ $match: { "payment.status": "Paid" } }, { $group: { _id: null, total: { $sum: "$fees" } } }]);
         const revenue = (paidAgg[0] && paidAgg[0].total) || 0;
 
-        const serverDaysAgo = new Date();
-        serverDaysAgo.setDate(serverDaysAgo.getDate() - 7);
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
         const recent = await Appointment.countDocuments({ createdAt: { $gte: sevenDaysAgo } });
 
         return res.json({
             success: true,
             stats: { total, revenue, recentLast7Days: recent }
-
         });
     } catch (err) {
         console.error("getStats Error:", err);
         return res.status(500).json({ success: false, message: "Server error" });
     }
-}
+};
 
 // to getAppointments By doctor
-
 export const getAppointmentsByDoctor = async (req, res) => {
     try {
         const { doctorId } = req.params;
@@ -557,36 +540,33 @@ export const getAppointmentsByDoctor = async (req, res) => {
             success: true,
             appointment: items,
             meta: { page, limit, total, count: items.length }
-        })
+        });
 
     } catch (err) {
         console.error("getAppointmentByDoctor Error:", err);
         return res.status(500).json({ success: false, message: "Server error" });
     }
-}
+};
 
-// to get Register user count  
-
+// to get registered user count
 export async function getRegisterUserCount(req, res) {
-
     try {
         const totalUsers = await clerkClient.users.getCount();
-        return res.json({ success: false, totalUsers });
+        return res.json({ success: true, totalUsers });
     } catch (err) {
         console.error("getRegisterUserCount Error:", err);
         return res.status(500).json({ success: false, message: "Server error" });
     }
-
 }
 
 export default {
-    getAppointmentByPatient,
     getAppointments,
+    getAppointmentsByPatient,
     creatAppointment,
     confirmPayment,
     updateAppointment,
     cancelAppointment,
     getStats,
-    getAppointmentByPatient,
-    getRegisterUserCount
-}
+    getAppointmentsByDoctor,
+    getRegisterUserCount,
+};

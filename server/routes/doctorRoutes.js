@@ -11,7 +11,7 @@ import {
   toggleAvilability,
 } from "../controllers/doctorController.js";
 // import { authorize } from "../middleware/authMiddleware.js";
-import doctorAuth from "../middleware/doctorAuth.js";
+import adminOrDoctorAuth from "../middleware/adminOrDoctorAuth.js";
 
 const router = express.Router();
 
@@ -25,8 +25,8 @@ router.get("/:id", getDoctorById);
 // only admin can add, update, or delete doctors
 router.post("/", upload.single("image"), createDoctor)
 // router.post("/", protect, authorize("admin"), doctorLogin);
-router.post("/:id/toggle-availability", doctorAuth, toggleAvilability)
-router.put("/:id", doctorAuth, upload.single("image"), updateDoctor);
+router.post("/:id/toggle-availability", adminOrDoctorAuth, toggleAvilability)
+router.put("/:id", adminOrDoctorAuth, upload.single("image"), updateDoctor);
 router.delete("/:id", deleteDoctor);
 
 export default router;

@@ -82,6 +82,7 @@ export async function createService(req, res) {
             available,
             instructions,
             slots,
+            dates: Object.keys(slots).sort(),
             imageUrl,
             imagePublicId
         });
@@ -174,7 +175,10 @@ export async function updateService(req, res) {
         if (b.price !== undefined) updateData.price = sanitizePrice(b.price);
         if (b.availability !== undefined) updateData.available = parseAvailability(b.availability);
         if (b.instructions !== undefined) updateData.instructions = parseJsonArrayField(b.instructions);
-        if (b.slots !== undefined) updateData.slots = normalizeSlotsToMap(parseJsonArrayField(b.slots));
+        if (b.slots !== undefined) {
+            updateData.slots = normalizeSlotsToMap(parseJsonArrayField(b.slots));
+            updateData.dates = Object.keys(updateData.slots).sort();
+        }
 
         if (req.file) {
             try {

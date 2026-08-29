@@ -125,7 +125,7 @@ export const createServiceAppointment = async (req, res) => {
         try {
             const existing = await ServiceAppointment.findOne({
                 serviceId: String(serviceId),
-                createdBy: clerkUserId,
+                createdBy: clerkUsedId,
                 date: String(date),
                 hour: Number(finalHour),
                 minute: Number(finalMinute),
@@ -160,7 +160,7 @@ export const createServiceAppointment = async (req, res) => {
             minute: Number(finalMinute),
             ampm: finalAmpm,
             fees: numericAmount,
-            createdBy: clerkUserId,
+            createdBy: clerkUsedId,
             notes: notes || "",
         };
 
@@ -374,7 +374,7 @@ export const updateServiceAppointment = async (req, res) => {
     try {
         const { id } = req.params;
         const body = req.body || {};
-        const update = {};
+        const updates = {};
 
         //updateServiceAppointment
         if (body.status !== undefined) updates.status = body.status;
@@ -484,3 +484,38 @@ export const getServiceAppointmentStats = async (req, res) => {
 
 // to get appointment for the patient
 
+export const getServiceAppointmentByPatient = async (req, res) => {
+    try {
+        const clerkUserId = resolveClerkUserId(req);
+        const { createdBy, mobile } = req.query;
+        const resolvedCreatedBy = createdBy || clerkUserId || null;
+        if (!resolvedCreatedBy && !mobile) return res.json({
+            success: true,
+            data: []
+        });
+
+        const filter = {};
+        if (resolvedCreatedBy) filter.createdBy = resolvedCreatedBy;
+        if (mobile) filter.mobile = mobile;
+
+        const list = await ServiceAppointment.find(filter).sort({ createdAt: -1 }).lean();
+        return res.json({
+            success: true,
+            appointments: list
+        });
+    } catch (err) {
+        console.error("getServiceAppointmentByPatient error:", err);
+        return res.status(500).json({ success: false, message: "Server error" });
+    }
+}
+
+export default {
+    createServiceAppointment,
+    confirmServicePayment,
+    getServiceAppointments,
+    getServiceAppointmentById,
+    updateServiceAppointment,
+    cancelServiceAppointment,
+    getServiceAppointmentStats,
+    getServiceAppointmentByPatient
+}
