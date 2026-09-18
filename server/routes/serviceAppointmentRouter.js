@@ -2,7 +2,6 @@ import express from "express";
 import { clerkMiddleware, requireAuth } from "@clerk/express";
 
 import { cancelServiceAppointment, confirmServicePayment, createServiceAppointment, getServiceAppointmentById, getServiceAppointmentByPatient, getServiceAppointments, getServiceAppointmentStats, updateServiceAppointment } from "../controllers/serviceAppointmentController.js";
-import { updateAppointment } from "../controllers/AppointmentController";
 
 const serviceAppointmentRouter = express.Router()
 
