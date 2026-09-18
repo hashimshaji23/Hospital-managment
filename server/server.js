@@ -16,31 +16,14 @@ import serviceAppointmentRouter from "./routes/serviceAppointmentRouter.js";
 const app = express();
 connection()
 
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:5174",
-  "http://localhost:5175",
-  process.env.FRONTEND_URL_
-].filter(Boolean).map(url => url.trim().replace(/\/$/, ""));
-
+// Enable CORS for all origins (dynamically reflects requesting origin with credentials)
 app.use(
   cors({
-    origin: function (origin, callback) {
-      if (!origin) return callback(null, true);
-      const cleanOrigin = origin.replace(/\/$/, "");
-      if (
-        allowedOrigins.includes(cleanOrigin) ||
-        cleanOrigin.endsWith(".vercel.app") ||
-        cleanOrigin.endsWith(".onrender.com")
-      ) {
-        return callback(null, true);
-      }
-      return callback(null, true);
-    },
+    origin: true,
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"]
-  }),
+  })
 );
 
 app.use(express.json()); // allows us to read JSON data sent in requests
