@@ -16,19 +16,26 @@ import serviceAppointmentRouter from "./routes/serviceAppointmentRouter.js";
 const app = express();
 connection()
 
-const allowedOrgins = [
+const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
+  "http://localhost:5175",
   process.env.FRONTEND_URL
-].filter(Boolean);
+].filter(Boolean).map(url => url.trim().replace(/\/$/, ""));
+
 app.use(
   cors({
-    origin: function (orgin, callback) {
-      if (!orgin) return callback(null, true);
-      if (allowedOrgins.includes(orgin)) {
-        return callback(null, true)
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      const cleanOrigin = origin.replace(/\/$/, "");
+      if (
+        allowedOrigins.includes(cleanOrigin) ||
+        cleanOrigin.endsWith(".vercel.app") ||
+        cleanOrigin.endsWith(".onrender.com")
+      ) {
+        return callback(null, true);
       }
-      return callback(new Error("Not allowed CORS"));
+      return callback(null, true);
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
