@@ -18,8 +18,9 @@ connection()
 
 const allowedOrgins = [
   "http://localhost:5173",
-  "http://localhost:5174"
-]
+  "http://localhost:5174",
+  process.env.FRONTEND_URL
+].filter(Boolean);
 app.use(
   cors({
     origin: function (orgin, callback) {
