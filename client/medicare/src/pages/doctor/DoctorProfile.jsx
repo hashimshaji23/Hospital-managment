@@ -6,7 +6,6 @@ import {
 } from 'lucide-react'
 import { doctorInfoStore, doctorTokenStore } from '../../utils/api'
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api"
 
 const DoctorProfile = () => {
   const stored = doctorInfoStore.get()

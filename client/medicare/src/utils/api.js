@@ -1,4 +1,6 @@
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+const rawUrl = (import.meta.env.VITE_API_URL || "http://localhost:3001/api").trim();
+const cleanUrl = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
+const BASE_URL = cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
 
 async function request(path, { method = "GET", body, token, isForm = false } = {}) {
   const headers = {};
