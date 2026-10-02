@@ -30,16 +30,14 @@ async function run() {
 
     const existing = await User.findOne({ email });
     if (existing) {
-        if (existing.role !== "admin") {
-            existing.role = "admin";
-            await existing.save();
-            console.log(`User ${email} already existed — promoted to admin.`);
-        } else {
-            console.log(`Admin user ${email} already exists. Nothing to do.`);
-        }
+        existing.role = "admin";
+        existing.password = password;
+        if (name) existing.name = name;
+        await existing.save();
+        console.log(`Updated existing user to admin:\n  email: ${email}\n  role: admin`);
     } else {
         await User.create({ name, email, password, role: "admin" });
-        console.log(`Created admin user:\n  email: ${email}\n  password: ${password}`);
+        console.log(`Created admin user:\n  email: ${email}\n  password: ${password}\n  role: admin`);
     }
 
     await mongoose.disconnect();
