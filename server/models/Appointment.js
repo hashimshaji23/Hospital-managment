@@ -1,10 +1,9 @@
-import mongoose, { mongo } from "mongoose";
+import mongoose from "mongoose";
 
 const appointmentSchema = new mongoose.Schema({
-    owner: { type: String, require: true, index: true },
-    createdAt: { type: String, default: null, index: true },
-
-    // Patient info
+    owner: { type: String, required: true, index: true },
+    createdBy: { type: String, default: null, index: true },
+    notes: { type: String, default: "" },
 
     patientName: { type: String, required: true, trim: true },
     mobile: { type: String, required: true, trim: true },
@@ -25,7 +24,6 @@ const appointmentSchema = new mongoose.Schema({
         publicId: { type: String, default: "" },
     },
 
-    // apointment info
     date: { type: String, required: true },
     time: { type: String, required: true },
 
@@ -37,14 +35,10 @@ const appointmentSchema = new mongoose.Schema({
         default: "Pending",
     },
 
-    // if reschedule
-
     rescheduledTo: {
         date: { type: String },
         time: { type: String },
     },
-
-    // Payment mode
 
     payment: {
         method: {
@@ -65,5 +59,5 @@ const appointmentSchema = new mongoose.Schema({
     paidAt: { type: Date, default: null },
 }, { timestamps: true });
 
-const Appointment = mongoose.model.Appointment || mongoose.model("Appointment", appointmentSchema);
+const Appointment = mongoose.models.Appointment || mongoose.model("Appointment", appointmentSchema);
 export default Appointment;

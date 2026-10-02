@@ -81,8 +81,8 @@ const MyAppointments = () => {
         api.get("/appointments/me", { token }),
         api.get("/service-appointments/me", { token }),
       ])
-      setDoctorAppointments(docRes.appointments || [])
-      setServiceAppointments(svcRes.appointments || [])
+      setDoctorAppointments(docRes.appointments || docRes.appointment || [])
+      setServiceAppointments(svcRes.appointments || svcRes.data || [])
     } catch (err) {
       setError(err.message || "Could not load your appointments")
     } finally {
@@ -95,7 +95,8 @@ const MyAppointments = () => {
   const handleCancel = async (id, kind) => {
     try {
       const path = kind === "doctor" ? `/appointments/${id}/cancel` : `/service-appointments/${id}/cancel`
-      await api.post(path, {})
+      const token = await getToken()
+      await api.post(path, {}, { token })
       load()
     } catch (err) {
       setError(err.message || "Could not cancel appointment")
