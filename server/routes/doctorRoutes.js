@@ -13,9 +13,11 @@ import {
 // import { authorize } from "../middleware/authMiddleware.js";
 import adminOrDoctorAuth from "../middleware/adminOrDoctorAuth.js";
 
+import os from "os";
+
 const router = express.Router();
 
-const upload = multer({ dest: "/tmp" });
+const upload = multer({ dest: os.tmpdir() });
 
 // anyone can view doctors (no login needed - patients need to browse doctors)
 router.get("/", getDoctors);

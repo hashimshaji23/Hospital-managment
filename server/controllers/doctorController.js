@@ -129,11 +129,10 @@ export async function createDoctor(req, res) {
     });
 
   } catch (err) {
-
     console.error("CreateDoctor error :", err);
     return res.status(500).json({
       success: false,
-      message: "server Error"
+      message: err.message || "Server Error"
     })
   }
 

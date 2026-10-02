@@ -114,7 +114,6 @@ const serviceAppointmentSchema = new mongoose.Schema({
         sessionId: {
             type: String,
             default: "",
-            index: true,
         },
         meta: {
             type: mongoose.Schema.Types.Mixed,

@@ -14,12 +14,18 @@ export async function uploadToCloudinary(filePath, folder = "medicare") {
             folder,
             resource_type: "image"
         });
-
-        fs.unlinkSync(filePath);
         return result;
     } catch (err) {
-        console.error("cloudinary uplode error:", err);
+        console.error("cloudinary upload error:", err);
         throw err;
+    } finally {
+        if (filePath && fs.existsSync(filePath)) {
+            try {
+                fs.unlinkSync(filePath);
+            } catch (cleanupErr) {
+                console.warn("Failed to delete temp file:", cleanupErr);
+            }
+        }
     }
 
 }

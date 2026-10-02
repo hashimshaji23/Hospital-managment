@@ -2,7 +2,9 @@ import express from "express";
 import multer from "multer";
 import { createService, deleteService, getServiceById, getServices, updateService } from "../controllers/ServiceController.js";
 
-const upload = multer({dest: "/tmp"});
+import os from "os";
+
+const upload = multer({ dest: os.tmpdir() });
 const serviceRouter = express.Router();
 
 serviceRouter.get("/", getServices);
