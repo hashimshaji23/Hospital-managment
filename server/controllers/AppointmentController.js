@@ -3,8 +3,7 @@ import Appointment from "../models/Appointment.js";
 import Doctor from "../models/Doctor.js";
 import dotenv from 'dotenv'
 
-import { getAuth } from "@clerk/express";
-import { clerkClient } from "@clerk/clerk-sdk-node";
+import { getAuth, clerkClient } from "@clerk/express";
 dotenv.config();
 
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
@@ -32,15 +31,16 @@ const buildFrontendBase = (req) => {
 // this function will get the user from clerk and return the user details
 function resolveClerkUserId(req) {
     try {
-        const auth = req.auth || {};
-        const fromReq = auth?.userId || auth?.user_id || auth?.user?.id || req.user?.id || null;
-        if (fromReq) return fromReq;
-        try {
-            const serverAuth = getAuth ? getAuth(req) : null;
-            return serverAuth?.userId || null;
-        } catch (e) {
-            return null;
+        if (typeof req.auth === "function") {
+            const authObj = req.auth();
+            if (authObj?.userId) return authObj.userId;
         }
+        if (req.auth && typeof req.auth === "object" && req.auth.userId) {
+            return req.auth.userId;
+        }
+        const serverAuth = getAuth ? getAuth(req) : null;
+        if (serverAuth?.userId) return serverAuth.userId;
+        return req.user?.id || req.user?.userId || null;
     } catch (e) {
         return null;
     }
@@ -89,7 +89,7 @@ export const getAppointments = async (req, res) => {
 export const getAppointmentsByPatient = async (req, res) => {
     try {
         const queryCreatedBy = req.query.createdBy || null;
-        const clerkUserId = req.auth?.userId || null;
+        const clerkUserId = resolveClerkUserId(req);
         const resolvedCreatedBy = queryCreatedBy || clerkUserId || null;
 
         console.log('resolvedCreatedBy (query or req.auth.userId):', resolvedCreatedBy);

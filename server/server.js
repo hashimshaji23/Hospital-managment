@@ -27,6 +27,7 @@ app.use(
 );
 
 app.use(express.json()); // allows us to read JSON data sent in requests
+app.use(clerkMiddleware()); // attaches clerk authentication context to all requests
 
 // routes - any request starting with these paths goes to the matching file
 app.use("/api/auth", authRoutes);
@@ -42,8 +43,16 @@ app.get("/api/health", (req, res) => {
   res.status(200).json({ message: "Server is running fine!" });
 });
 
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 3001;
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log("Server is running on port " + PORT);
+});
+
+process.on("SIGINT", () => {
+  server.close(() => process.exit(0));
+});
+
+process.on("SIGTERM", () => {
+  server.close(() => process.exit(0));
 });

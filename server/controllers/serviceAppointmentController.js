@@ -48,15 +48,16 @@ const buildFrontendBase = (req) => {
 
 function resolveClerkUserId(req) {
     try {
-        const auth = req.auth || {};
-        const candidate = auth?.userId || auth?.user_id || auth?.user?.id || req.user?.id || null;
-        if (candidate) return candidate;
-        try {
-            const serverAuth = getAuth ? getAuth(req) : null;
-            return serverAuth?.userId || null;
-        } catch (e) {
-            return null;
+        if (typeof req.auth === "function") {
+            const authObj = req.auth();
+            if (authObj?.userId) return authObj.userId;
         }
+        if (req.auth && typeof req.auth === "object" && req.auth.userId) {
+            return req.auth.userId;
+        }
+        const serverAuth = getAuth ? getAuth(req) : null;
+        if (serverAuth?.userId) return serverAuth.userId;
+        return req.user?.id || req.user?.userId || null;
     } catch (e) {
         return null;
     }

@@ -1,8 +1,7 @@
 import express from "express";
-import { clerkMiddleware } from "@clerk/express";
+import requireClerkAuth from "../middleware/clerkAuth.js";
 
 import { cancelAppointment, confirmPayment, creatAppointment, getAppointments, getAppointmentsByDoctor, getAppointmentsByPatient, getRegisterUserCount, getStats, updateAppointment } from "../controllers/AppointmentController.js";
-import { requireAuth } from "@clerk/clerk-sdk-node";
 
 const appointmentRouter = express.Router();
 
@@ -13,8 +12,8 @@ appointmentRouter.get("/stats/summary", getStats);
 
 // Authentic routes
 
-appointmentRouter.post("/", clerkMiddleware(), requireAuth(), creatAppointment);
-appointmentRouter.get("/me", clerkMiddleware(), requireAuth(), getAppointmentsByPatient);
+appointmentRouter.post("/", requireClerkAuth, creatAppointment);
+appointmentRouter.get("/me", requireClerkAuth, getAppointmentsByPatient);
 
 appointmentRouter.get("/doctor/:doctorId", getAppointmentsByDoctor);
 
