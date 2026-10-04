@@ -39,7 +39,7 @@ const doctorSchema = new mongoose.Schema({
   rating: { type: Number, default: 0 },
 });
 
-doctorSchema.index({ name: "text", speechSynthesis: "text" });
-const Doctor = mongoose.model.Doctor || mongoose.model("Doctor", doctorSchema);
+doctorSchema.index({ name: "text", specialization: "text" });
+const Doctor = mongoose.models.Doctor || mongoose.model("Doctor", doctorSchema);
 
 export default Doctor

@@ -353,8 +353,9 @@ export async function toggleAvilability(req, res) {
     });
 
     if (typeof doc.availability === "boolean") doc.availability = !doc.availability;
-    else doc.availability = doc.availability === "available" ?
-      "Unavailable" : "Available";
+    else doc.availability = String(doc.availability).toLowerCase() === "available"
+      ? "Unavailable"
+      : "Available";
 
     await doc.save();
     const out = normalizeDocForClient(doc.toObject());
@@ -379,17 +380,14 @@ export async function doctorLogin(req, res) {
     });
 
     const doc = await Doctor.findOne({ email: email.toLowerCase() }).select("+password");
-    console.log("doc :", doc)
-    console.log("email :", email)
-    console.log('pass :', password)
     if (!doc) return res.status(401).json({
       success: false,
-      message: "Invalid creds"
+      message: "Invalid credentials"
     });
 
     if (doc.password !== password) return res.status(401).json({
       success: false,
-      messaga: "Invalid credentials"
+      message: "Invalid credentials"
     });
 
     const secret = process.env.JWT_SECRET;
@@ -403,7 +401,7 @@ export async function doctorLogin(req, res) {
       role: "doctor"
     }, secret, { expiresIn: "7d" });
 
-    const out = doc.toObject();
+    const out = normalizeDocForClient(doc.toObject());
     delete out.password;
     return res.json({ success: true, token, data: out });
 

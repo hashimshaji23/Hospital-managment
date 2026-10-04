@@ -3,8 +3,7 @@ import { loginPageStyles as ls } from '../../assets/dummyStyles'
 import logoImg from '../../assets/logo.png'
 import { useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
-import { api } from '../../utils/api'
-import { doctorTokenStore, doctorInfoStore } from '../../utils/api'
+import { api, doctorTokenStore, doctorInfoStore } from '../../utils/api'
 
 const DoctorLogin = () => {
   const navigate = useNavigate()
@@ -16,9 +15,13 @@ const DoctorLogin = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError("")
+    if (!email.trim() || !password) {
+      setError("Email and password are required.")
+      return
+    }
     setLoading(true)
     try {
-      const res = await api.post("/doctors/login", { email, password })
+      const res = await api.post("/doctors/login", { email: email.trim(), password })
       doctorTokenStore.set(res.token)
       doctorInfoStore.set(res.data)
       navigate("/doctor/dashboard")
@@ -40,11 +43,12 @@ const DoctorLogin = () => {
           <img src={logoImg} alt="MediCare" className={ls.logo} />
         </div>
         <h1 className={ls.title}>Doctor Login</h1>
-        <p className={ls.subtitle}>Sign in to manage your appointments</p>
+        <p className={ls.subtitle}>Sign in to manage your appointments and profile</p>
 
         <form onSubmit={handleSubmit} className={ls.form}>
           <input
             type="email"
+            required
             placeholder="Email"
             className={ls.input}
             value={email}
@@ -52,6 +56,7 @@ const DoctorLogin = () => {
           />
           <input
             type="password"
+            required
             placeholder="Password"
             className={ls.input}
             value={password}

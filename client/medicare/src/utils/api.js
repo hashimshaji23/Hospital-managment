@@ -1,42 +1,6 @@
 const rawUrl = (import.meta.env.VITE_API_URL || "http://localhost:3001/api").trim();
-const cleanUrl = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
-const BASE_URL = cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
-
-async function request(path, { method = "GET", body, token, isForm = false } = {}) {
-  const headers = {};
-  if (!isForm) headers["Content-Type"] = "application/json";
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method,
-    headers,
-    body: body ? (isForm ? body : JSON.stringify(body)) : undefined,
-  });
-
-  let data = null;
-  try {
-    data = await res.json();
-  } catch {
-    data = null;
-  }
-
-  if (!res.ok) {
-    const message = data?.message || `Request failed (${res.status})`;
-    const err = new Error(message);
-    err.status = res.status;
-    err.data = data;
-    throw err;
-  }
-
-  return data;
-}
-
-export const api = {
-  get: (path, opts) => request(path, { ...opts, method: "GET" }),
-  post: (path, body, opts) => request(path, { ...opts, method: "POST", body }),
-  put: (path, body, opts) => request(path, { ...opts, method: "PUT", body }),
-  del: (path, opts) => request(path, { ...opts, method: "DELETE" }),
-};
+const cleanUrl = rawUrl.endsWith("/") ? rawUrl.slice(0, -1) : rawUrl;
+const BASE_URL = cleanUrl.endsWith("/api") ? cleanUrl : `${cleanUrl}/api`;
 
 export const doctorTokenStore = {
   get: () => localStorage.getItem("doctorToken"),
@@ -54,6 +18,49 @@ export const doctorInfoStore = {
   },
   set: (info) => localStorage.setItem("doctorInfo", JSON.stringify(info)),
   clear: () => localStorage.removeItem("doctorInfo"),
+};
+
+async function request(path, { method = "GET", body, token, isForm = false } = {}) {
+  const headers = {};
+  if (!isForm) headers["Content-Type"] = "application/json";
+
+  const authToken = token || doctorTokenStore.get();
+  if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
+
+  let res;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      method,
+      headers,
+      body: body ? (isForm ? body : JSON.stringify(body)) : undefined,
+    });
+  } catch {
+    throw new Error("Could not reach the server. Is it running?");
+  }
+
+  let data = null;
+  try {
+    data = await res.json();
+  } catch {
+    data = null;
+  }
+
+  if (!res.ok) {
+    const message = data?.message || data?.error || `Request failed (${res.status})`;
+    const err = new Error(message);
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
+
+  return data;
+}
+
+export const api = {
+  get: (path, opts) => request(path, { ...opts, method: "GET" }),
+  post: (path, body, opts) => request(path, { ...opts, method: "POST", body }),
+  put: (path, body, opts) => request(path, { ...opts, method: "PUT", body }),
+  del: (path, opts) => request(path, { ...opts, method: "DELETE" }),
 };
 
 export default BASE_URL;

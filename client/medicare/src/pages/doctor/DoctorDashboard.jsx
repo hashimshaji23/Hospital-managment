@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { dashboardStyles as ds } from '../../assets/dummyStyles'
-import { CalendarCheck, Users, Wallet, Clock3, Phone, RefreshCw } from 'lucide-react'
+import { CalendarCheck, Users, Wallet, Clock3, Phone, RefreshCw, ArrowRight } from 'lucide-react'
 import { api, doctorInfoStore } from '../../utils/api'
 
 const statusClass = (status) => {
@@ -20,11 +21,15 @@ const DoctorDashboard = () => {
   const [error, setError] = useState("")
 
   const load = async () => {
-    if (!doctor?._id) { setError("Doctor session not found. Please log in again."); setLoading(false); return }
+    if (!doctor?._id) {
+      setError("Doctor session not found. Please log in again.")
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setError("")
     try {
-      const res = await api.get(`/appointments/doctor/${doctor._id}`)
+      const res = await api.get(`/appointments/doctor/${doctor._id}?limit=50`)
       setAppointments(res.appointment || [])
     } catch (err) {
       setError(err.message || "Could not load appointments")
@@ -42,13 +47,19 @@ const DoctorDashboard = () => {
     .filter((a) => a.status === "Completed" || a.status === "Confirmed")
     .reduce((sum, a) => sum + (a.fees || 0), 0)
 
+  const recent = [...appointments]
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)))
+    .slice(0, 8)
+
   return (
     <div className={ds.pageContainer}>
       <div className={ds.contentWrapper}>
         <div className={ds.headerContainer}>
           <div>
             <h1 className={ds.headerTitle}>Welcome, Dr. {doctor?.name}</h1>
-            <p className={ds.headerSubtitle}>Here's an overview of your appointments</p>
+            <p className={ds.headerSubtitle}>
+              {doctor?.specialization ? `${doctor.specialization} · ` : ""}Overview of your appointments
+            </p>
           </div>
           <button onClick={load} className={ds.refreshButton}>
             <RefreshCw className="w-4 h-4 inline mr-1" /> Refresh
@@ -60,7 +71,7 @@ const DoctorDashboard = () => {
             <div className={ds.statContent}>
               <div className={ds.statTextContainer}>
                 <p className={ds.statTitle}>Total Appointments</p>
-                <p className={ds.statValue}>{total}</p>
+                <p className={ds.statValue}>{loading ? "—" : total}</p>
               </div>
               <div className={`${ds.statIconContainer} ${ds.accentTopEmerald} ${ds.accentBottomEmerald}`}>
                 <CalendarCheck className={ds.statIcon} />
@@ -71,7 +82,7 @@ const DoctorDashboard = () => {
             <div className={ds.statContent}>
               <div className={ds.statTextContainer}>
                 <p className={ds.statTitle}>Confirmed / Completed</p>
-                <p className={ds.statValue}>{completed}</p>
+                <p className={ds.statValue}>{loading ? "—" : completed}</p>
               </div>
               <div className={`${ds.statIconContainer} ${ds.accentTopEmeraldLight} ${ds.accentBottomEmerald}`}>
                 <Users className={ds.statIcon} />
@@ -82,7 +93,7 @@ const DoctorDashboard = () => {
             <div className={ds.statContent}>
               <div className={ds.statTextContainer}>
                 <p className={ds.statTitle}>Pending</p>
-                <p className={ds.statValue}>{pending}</p>
+                <p className={ds.statValue}>{loading ? "—" : pending}</p>
               </div>
               <div className={`${ds.statIconContainer} ${ds.accentTopAmber} ${ds.accentBottomAmber}`}>
                 <Clock3 className={ds.statIcon} />
@@ -93,7 +104,7 @@ const DoctorDashboard = () => {
             <div className={ds.statContent}>
               <div className={ds.statTextContainer}>
                 <p className={ds.statTitle}>Earnings</p>
-                <p className={ds.statValue}>₹{earnings}</p>
+                <p className={ds.statValue}>{loading ? "—" : `₹${earnings}`}</p>
               </div>
               <div className={`${ds.statIconContainer} ${ds.accentTopRose} ${ds.accentBottomRose}`}>
                 <Wallet className={ds.statIcon} />
@@ -105,7 +116,9 @@ const DoctorDashboard = () => {
         <div className={ds.appointmentsContainer}>
           <div className={ds.appointmentsHeader}>
             <h2 className={ds.appointmentsTitle}>Recent Appointments</h2>
-            <span className={ds.appointmentsTotal}>{total} total</span>
+            <Link to="/doctor/appointments" className="text-sm text-emerald-700 hover:underline inline-flex items-center gap-1">
+              View all <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
 
           {error && <p className="text-rose-600 text-sm mb-4">{error}</p>}
@@ -113,7 +126,7 @@ const DoctorDashboard = () => {
             <p className="text-emerald-600">Loading...</p>
           ) : (
             <div className={ds.cardsGrid}>
-              {appointments.slice(0, 8).map((a) => (
+              {recent.map((a) => (
                 <div key={a._id} className={ds.appointmentCard}>
                   <div className={ds.cardHeader}>
                     <div className={ds.cardAvatar}>

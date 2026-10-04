@@ -14,6 +14,7 @@ const links = [
 const DoctorNavbar = () => {
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
+  const doctor = doctorInfoStore.get()
 
   const handleLogout = () => {
     doctorTokenStore.clear()
@@ -30,7 +31,7 @@ const DoctorNavbar = () => {
           </div>
           <div className={ns.brandTextContainer}>
             <p className={ns.brandTitle}>MediCare</p>
-            <p className={ns.brandSubtitle}>Doctor Portal</p>
+            <p className={ns.brandSubtitle}>{doctor?.name ? `Dr. ${doctor.name}` : "Doctor Portal"}</p>
           </div>
         </div>
 
@@ -55,7 +56,7 @@ const DoctorNavbar = () => {
           <button onClick={handleLogout} className={ns.logoutButtonDesktop}>
             <LogOut size={16} /> Logout
           </button>
-          <button className={ns.hamburgerButtonMd} onClick={() => setOpen(!open)}>
+          <button className="lg:hidden p-2 rounded-md hover:bg-emerald-50 transition-colors" onClick={() => setOpen(!open)}>
             <Menu size={20} />
           </button>
         </div>

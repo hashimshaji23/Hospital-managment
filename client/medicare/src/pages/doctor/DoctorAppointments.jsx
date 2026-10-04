@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { listPageStyles as ls } from '../../assets/dummyStyles'
 import { Search, X, Calendar as CalendarIcon, Phone } from 'lucide-react'
 import { api, doctorInfoStore } from '../../utils/api'
+import { formatDoctorTimeString } from '../../utils/format'
 
 const statusClass = (status) => {
   switch (status) {
@@ -25,15 +26,20 @@ const DoctorAppointments = () => {
   const [reschedulingId, setReschedulingId] = useState(null)
   const [rescheduleForm, setRescheduleForm] = useState({ date: "", time: "" })
 
-  const load = async () => {
-    if (!doctor?._id) { setError("Please log in again."); setLoading(false); return }
+  const load = async (q = search, status = statusFilter) => {
+    if (!doctor?._id) {
+      setError("Please log in again.")
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setError("")
     try {
-      const q = new URLSearchParams()
-      if (search) q.set("search", search)
-      if (statusFilter) q.set("status", statusFilter)
-      const res = await api.get(`/appointments/doctor/${doctor._id}?${q.toString()}`)
+      const params = new URLSearchParams()
+      if (q) params.set("search", q)
+      if (status) params.set("status", status)
+      params.set("limit", "200")
+      const res = await api.get(`/appointments/doctor/${doctor._id}?${params.toString()}`)
       setAppointments(res.appointment || [])
     } catch (err) {
       setError(err.message || "Could not load appointments")
@@ -42,8 +48,10 @@ const DoctorAppointments = () => {
     }
   }
 
-  useEffect(() => { load() }, [])
-  useEffect(() => { const t = setTimeout(load, 350); return () => clearTimeout(t) }, [search, statusFilter])
+  useEffect(() => {
+    const t = setTimeout(() => load(search, statusFilter), 350)
+    return () => clearTimeout(t)
+  }, [search, statusFilter])
 
   const updateStatus = async (id, status) => {
     try {
@@ -55,9 +63,10 @@ const DoctorAppointments = () => {
   }
 
   const saveReschedule = async (id) => {
-    if (!rescheduleForm.date || !rescheduleForm.time) return
+    const time = formatDoctorTimeString(rescheduleForm.time)
+    if (!rescheduleForm.date || !time) return
     try {
-      await api.put(`/appointments/${id}`, { date: rescheduleForm.date, time: rescheduleForm.time })
+      await api.put(`/appointments/${id}`, { date: rescheduleForm.date, time })
       setReschedulingId(null)
       setRescheduleForm({ date: "", time: "" })
       load()
@@ -128,10 +137,11 @@ const DoctorAppointments = () => {
                       <span className={`${ls.statusBadgeBase} ${statusClass(a.status)}`}>{a.status}</span>
                       <select
                         disabled={locked}
-                        value={a.status}
+                        value={statusOptions.includes(a.status) ? a.status : "Pending"}
                         onChange={(e) => updateStatus(a._id, e.target.value)}
                         className={`${ls.statusSelect} ${locked ? ls.statusSelectDisabled : ls.statusSelectEnabled}`}
                       >
+                        {a.status === "Rescheduled" && <option value="Rescheduled">Rescheduled</option>}
                         {statusOptions.map((s) => <option key={s} value={s}>{s}</option>)}
                       </select>
                     </div>
@@ -142,7 +152,7 @@ const DoctorAppointments = () => {
                       <div className={ls.rescheduleForm}>
                         <input type="date" className={ls.dateInput}
                           value={rescheduleForm.date} onChange={(e) => setRescheduleForm({ ...rescheduleForm, date: e.target.value })} />
-                        <input type="text" placeholder="e.g. 10:30 AM" className={ls.timeInput}
+                        <input type="time" className={ls.timeInput}
                           value={rescheduleForm.time} onChange={(e) => setRescheduleForm({ ...rescheduleForm, time: e.target.value })} />
                         <div className={ls.rescheduleButtons}>
                           <button className={ls.saveButton} onClick={() => saveReschedule(a._id)}>Save</button>
@@ -152,7 +162,10 @@ const DoctorAppointments = () => {
                     ) : (
                       <button
                         disabled={locked}
-                        onClick={() => setReschedulingId(a._id)}
+                        onClick={() => {
+                          setReschedulingId(a._id)
+                          setRescheduleForm({ date: a.date || "", time: "" })
+                        }}
                         className={`${ls.rescheduleButton} ${locked ? ls.rescheduleButtonDisabled : ls.rescheduleButtonEnabled}`}
                       >
                         Reschedule
