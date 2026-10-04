@@ -577,6 +577,10 @@ export async function getRegisterUserCount(req, res) {
         return res.json({ success: true, totalUsers });
     } catch (err) {
         console.error("getRegisterUserCount Error:", err);
+        return res.status(500).json({ success: false, message: "Server error" });
+    }
+}
+
 // to get doctor appointments stats
 export const getDoctorAppointmentStats = async (req, res) => {
     try {
