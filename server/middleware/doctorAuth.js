@@ -1,8 +1,6 @@
 import jwt from "jsonwebtoken"
 import Doctor from "../models/Doctor.js"
 
-const JWT_SECRET = process.env.JWT_SECRET;
-
 export default async function doctorAuth(req, res, next) {
 
     const authHeader = req.headers.authorization;
@@ -19,7 +17,7 @@ export default async function doctorAuth(req, res, next) {
     const token = authHeader.split(" ")[1];
 
     try {
-        const payload = jwt.verify(token, JWT_SECRET);
+        const payload = jwt.verify(token, process.env.JWT_SECRET);
 
         // Admins are allowed to manage any doctor record.
         if (payload.role === "admin") {

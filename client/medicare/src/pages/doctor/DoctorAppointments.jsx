@@ -25,6 +25,8 @@ const DoctorAppointments = () => {
   const [statusFilter, setStatusFilter] = useState("")
   const [reschedulingId, setReschedulingId] = useState(null)
   const [rescheduleForm, setRescheduleForm] = useState({ date: "", time: "" })
+  const [notesDraft, setNotesDraft] = useState({})
+  const [savingNoteId, setSavingNoteId] = useState(null)
 
   const load = async (q = search, status = statusFilter) => {
     if (!doctor?._id) {
@@ -40,7 +42,15 @@ const DoctorAppointments = () => {
       if (status) params.set("status", status)
       params.set("limit", "200")
       const res = await api.get(`/appointments/doctor/${doctor._id}?${params.toString()}`)
-      setAppointments(res.appointment || [])
+      const items = res.appointment || []
+      setAppointments(items)
+      setNotesDraft((prev) => {
+        const next = { ...prev }
+        items.forEach((a) => {
+          if (next[a._id] === undefined) next[a._id] = a.notes || ""
+        })
+        return next
+      })
     } catch (err) {
       setError(err.message || "Could not load appointments")
     } finally {
@@ -72,6 +82,18 @@ const DoctorAppointments = () => {
       load()
     } catch (err) {
       setError(err.message)
+    }
+  }
+
+  const saveNotes = async (id) => {
+    setSavingNoteId(id)
+    try {
+      await api.put(`/appointments/${id}`, { notes: notesDraft[id] || "" })
+      load()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSavingNoteId(null)
     }
   }
 
@@ -171,6 +193,25 @@ const DoctorAppointments = () => {
                         Reschedule
                       </button>
                     )}
+                  </div>
+
+                  <div className="mt-3">
+                    <label className="text-xs font-semibold text-emerald-800">Clinical notes</label>
+                    <textarea
+                      rows={2}
+                      className="mt-1 w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm text-emerald-900"
+                      value={notesDraft[a._id] ?? ""}
+                      onChange={(e) => setNotesDraft({ ...notesDraft, [a._id]: e.target.value })}
+                      placeholder="Add a note for this visit..."
+                    />
+                    <button
+                      type="button"
+                      onClick={() => saveNotes(a._id)}
+                      disabled={savingNoteId === a._id}
+                      className="mt-2 text-sm px-3 py-1 rounded-full bg-emerald-600 text-white font-semibold hover:bg-emerald-700 disabled:opacity-60"
+                    >
+                      {savingNoteId === a._id ? "Saving..." : "Save note"}
+                    </button>
                   </div>
                 </div>
               )

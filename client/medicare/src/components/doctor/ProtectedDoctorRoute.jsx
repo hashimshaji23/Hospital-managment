@@ -1,15 +1,15 @@
 import React from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, Outlet } from 'react-router-dom'
 import { doctorTokenStore } from '../../utils/api'
 import DoctorNavbar from './DoctorNavbar'
 
-const ProtectedDoctorRoute = ({ children }) => {
+const ProtectedDoctorRoute = () => {
   const token = doctorTokenStore.get()
   if (!token) return <Navigate to="/doctor-login" replace />
   return (
     <>
       <DoctorNavbar />
-      {children}
+      <Outlet />
     </>
   )
 }

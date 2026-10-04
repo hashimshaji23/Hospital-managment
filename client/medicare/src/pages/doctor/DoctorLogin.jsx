@@ -1,12 +1,13 @@
 import React, { useState } from 'react'
 import { loginPageStyles as ls } from '../../assets/dummyStyles'
 import logoImg from '../../assets/logo.png'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, Navigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { api, doctorTokenStore, doctorInfoStore } from '../../utils/api'
 
 const DoctorLogin = () => {
   const navigate = useNavigate()
+  if (doctorTokenStore.get()) return <Navigate to="/doctor/dashboard" replace />
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")

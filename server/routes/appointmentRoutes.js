@@ -1,5 +1,7 @@
 import express from "express";
 import requireClerkAuth from "../middleware/clerkAuth.js";
+import doctorAuth from "../middleware/doctorAuth.js";
+import adminOrDoctorAuth from "../middleware/adminOrDoctorAuth.js";
 
 import { cancelAppointment, confirmPayment, creatAppointment, getAppointments, getAppointmentsByDoctor, getAppointmentsByPatient, getRegisterUserCount, getStats, updateAppointment } from "../controllers/AppointmentController.js";
 
@@ -15,10 +17,10 @@ appointmentRouter.get("/stats/summary", getStats);
 appointmentRouter.post("/", requireClerkAuth, creatAppointment);
 appointmentRouter.get("/me", requireClerkAuth, getAppointmentsByPatient);
 
-appointmentRouter.get("/doctor/:doctorId", getAppointmentsByDoctor);
+appointmentRouter.get("/doctor/:doctorId", doctorAuth, getAppointmentsByDoctor);
 
 appointmentRouter.post("/:id/cancel", cancelAppointment);
 appointmentRouter.get("/paitents/count", getRegisterUserCount);
-appointmentRouter.put("/:id", updateAppointment);
+appointmentRouter.put("/:id", adminOrDoctorAuth, updateAppointment);
 
 export default appointmentRouter;

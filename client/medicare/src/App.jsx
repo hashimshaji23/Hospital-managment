@@ -40,15 +40,11 @@ const App = () => {
 
       {/* Doctor portal (own navbar, no site Navbar/Footer) */}
       <Route path='/doctor-login' element={<DoctorLogin />} />
-      <Route path='/doctor/dashboard' element={
-        <ProtectedDoctorRoute><DoctorDashboard /></ProtectedDoctorRoute>
-      } />
-      <Route path='/doctor/appointments' element={
-        <ProtectedDoctorRoute><DoctorAppointments /></ProtectedDoctorRoute>
-      } />
-      <Route path='/doctor/profile' element={
-        <ProtectedDoctorRoute><DoctorProfile /></ProtectedDoctorRoute>
-      } />
+      <Route element={<ProtectedDoctorRoute />}>
+        <Route path='/doctor/dashboard' element={<DoctorDashboard />} />
+        <Route path='/doctor/appointments' element={<DoctorAppointments />} />
+        <Route path='/doctor/profile' element={<DoctorProfile />} />
+      </Route>
 
       {/* Fallback */}
       <Route path='*' element={<Navigate to='/' replace />} />

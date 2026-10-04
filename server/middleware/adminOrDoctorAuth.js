@@ -1,8 +1,6 @@
 import jwt from "jsonwebtoken"
 import Doctor from "../models/Doctor.js"
 
-const JWT_SECRET = process.env.JWT_SECRET;
-
 // Allows two kinds of callers through to doctor update/toggle routes:
 //  1. An admin (User with role "admin") — can manage any doctor.
 //  2. The doctor themselves (Doctor JWT, role "doctor") — can only manage their own record.
@@ -19,7 +17,7 @@ export default async function adminOrDoctorAuth(req, res, next) {
     const token = authHeader.split(" ")[1];
 
     try {
-        const payload = jwt.verify(token, JWT_SECRET);
+        const payload = jwt.verify(token, process.env.JWT_SECRET);
 
         if (payload.role === "admin") {
             req.isAdmin = true;

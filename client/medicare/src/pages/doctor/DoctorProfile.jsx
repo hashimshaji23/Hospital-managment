@@ -289,6 +289,10 @@ const DoctorProfile = () => {
                     />
                   </div>
                 ))}
+                <div className={es.fieldGroup}>
+                  <label className={es.fieldLabel}>Login email</label>
+                  <input disabled value={doctor?.email || ""} className={es.inputBase(false)} />
+                </div>
               </div>
 
               <div className="mt-4">

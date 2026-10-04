@@ -436,6 +436,13 @@ export const updateAppointment = async (req, res) => {
             message: "Appointment not found"
         });
 
+        if (!req.isAdmin) {
+            const doctorId = String(req.doctor?._id || req.doctor?.id || "");
+            if (!doctorId || String(appt.doctorId) !== doctorId) {
+                return res.status(403).json({ success: false, message: "Not authorized to update this appointment" });
+            }
+        }
+
         const terminal = appt.status === "Completed" || appt.status === "Canceled";
         if (terminal && body.status && body.status !== appt.status) {
             return res.status(400).json({ success: false, message: "Cannot change status of a completed/canceled appointment" });
@@ -518,6 +525,16 @@ export const getAppointmentsByDoctor = async (req, res) => {
             success: false,
             message: "Doctor Id required"
         });
+
+        if (!req.isAdmin) {
+            const selfId = String(req.doctor?._id || req.doctor?.id || "");
+            if (!selfId || selfId !== String(doctorId)) {
+                return res.status(403).json({
+                    success: false,
+                    message: "Not authorized to view these appointments"
+                });
+            }
+        }
 
         const { mobile, status, search = "", limit: limitRaw = 50, page: pageRaw = 1 } = req.query;
         const limit = Math.min(200, Math.max(1, parseInt(limitRaw, 10) || 50));

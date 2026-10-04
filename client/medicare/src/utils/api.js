@@ -24,7 +24,9 @@ async function request(path, { method = "GET", body, token, isForm = false } = {
   const headers = {};
   if (!isForm) headers["Content-Type"] = "application/json";
 
-  const authToken = token || doctorTokenStore.get();
+  const doctorToken = doctorTokenStore.get();
+  const usedDoctorToken = !token && !!doctorToken;
+  const authToken = token || doctorToken;
   if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
 
   let res;
@@ -43,6 +45,11 @@ async function request(path, { method = "GET", body, token, isForm = false } = {
     data = await res.json();
   } catch {
     data = null;
+  }
+
+  if (res.status === 401 && usedDoctorToken) {
+    doctorTokenStore.clear();
+    doctorInfoStore.clear();
   }
 
   if (!res.ok) {
