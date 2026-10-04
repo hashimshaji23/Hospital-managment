@@ -499,6 +499,44 @@ export const cancelAppointment = async (req, res) => {
     }
 };
 
+// to delete an appointment
+export const deleteAppointment = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const appt = await Appointment.findById(id);
+
+        if (!appt) {
+            return res.status(404).json({
+                success: false,
+                message: "Appointment not found"
+            });
+        }
+
+        if (!req.isAdmin) {
+            const doctorId = String(req.doctor?._id || req.doctor?.id || "");
+            if (!doctorId || String(appt.doctorId) !== doctorId) {
+                return res.status(403).json({
+                    success: false,
+                    message: "Not authorized to delete this appointment"
+                });
+            }
+        }
+
+        await Appointment.findByIdAndDelete(id);
+
+        return res.json({
+            success: true,
+            message: "Appointment deleted successfully"
+        });
+    } catch (err) {
+        console.error("deleteAppointment Error:", err);
+        return res.status(500).json({
+            success: false,
+            message: "Server error"
+        });
+    }
+};
+
 // to get stats
 export const getStats = async (req, res) => {
     try {
@@ -645,6 +683,7 @@ export default {
     confirmPayment,
     updateAppointment,
     cancelAppointment,
+    deleteAppointment,
     getStats,
     getAppointmentsByDoctor,
     getDoctorAppointmentStats,

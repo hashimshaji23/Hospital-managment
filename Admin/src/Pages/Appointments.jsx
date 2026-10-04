@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { statusBadgeClass, currency } from '../utils/format'
-import { Search, XCircle } from 'lucide-react'
+import ConfirmModal from '../components/ConfirmModal'
+import { Search, XCircle, Trash2, CheckCircle2 } from 'lucide-react'
 
 const STATUS_OPTIONS = ["Pending", "Confirmed", "Completed", "Canceled", "Rescheduled"]
 
@@ -9,9 +10,12 @@ const Appointments = () => {
     const [appointments, setAppointments] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
+    const [successMessage, setSuccessMessage] = useState("")
     const [query, setQuery] = useState("")
     const [statusFilter, setStatusFilter] = useState("")
     const [updatingId, setUpdatingId] = useState(null)
+    const [deleteTarget, setDeleteTarget] = useState(null)
+    const [deleting, setDeleting] = useState(false)
 
     const load = async () => {
         setLoading(true)
@@ -37,9 +41,12 @@ const Appointments = () => {
 
     const updateStatus = async (id, status) => {
         setUpdatingId(id)
+        setError("")
         try {
             await api.put(`/appointments/${id}`, { status })
+            setSuccessMessage(`Appointment status updated to ${status}.`)
             load()
+            setTimeout(() => setSuccessMessage(""), 4000)
         } catch (err) {
             setError(err.message || "Could not update status")
         } finally {
@@ -49,13 +56,34 @@ const Appointments = () => {
 
     const cancelAppointment = async (id) => {
         setUpdatingId(id)
+        setError("")
         try {
             await api.post(`/appointments/${id}/cancel`, {})
+            setSuccessMessage("Appointment marked as Canceled.")
             load()
+            setTimeout(() => setSuccessMessage(""), 4000)
         } catch (err) {
             setError(err.message || "Could not cancel appointment")
         } finally {
             setUpdatingId(null)
+        }
+    }
+
+    const handleDelete = async () => {
+        if (!deleteTarget) return
+        setDeleting(true)
+        setError("")
+        setSuccessMessage("")
+        try {
+            await api.del(`/appointments/${deleteTarget._id || deleteTarget.id}`)
+            setSuccessMessage(`Appointment for ${deleteTarget.patientName || "patient"} successfully deleted.`)
+            setDeleteTarget(null)
+            load()
+            setTimeout(() => setSuccessMessage(""), 4000)
+        } catch (err) {
+            setError(err.message || "Could not delete appointment")
+        } finally {
+            setDeleting(false)
         }
     }
 
@@ -85,6 +113,12 @@ const Appointments = () => {
             </div>
 
             {error && <div className="mb-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl px-4 py-3 text-sm">{error}</div>}
+            {successMessage && (
+                <div className="mb-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl px-4 py-3 text-sm flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>{successMessage}</span>
+                </div>
+            )}
 
             <div className="bg-white rounded-2xl border border-emerald-100 shadow-sm overflow-hidden">
                 {loading ? (
@@ -132,16 +166,26 @@ const Appointments = () => {
                                             </select>
                                         </td>
                                         <td className="py-3 px-4 text-right">
-                                            {a.status !== "Canceled" && a.status !== "Completed" && (
+                                            <div className="flex items-center justify-end gap-1">
+                                                {a.status !== "Canceled" && a.status !== "Completed" && (
+                                                    <button
+                                                        onClick={() => cancelAppointment(a._id)}
+                                                        disabled={updatingId === a._id}
+                                                        className="p-2 rounded-full hover:bg-rose-50 text-rose-500 disabled:opacity-50 transition cursor-pointer"
+                                                        title="Cancel Appointment"
+                                                    >
+                                                        <XCircle className="w-4 h-4" />
+                                                    </button>
+                                                )}
                                                 <button
-                                                    onClick={() => cancelAppointment(a._id)}
+                                                    onClick={() => setDeleteTarget(a)}
                                                     disabled={updatingId === a._id}
-                                                    className="p-2 rounded-full hover:bg-rose-50 text-rose-500 disabled:opacity-50"
-                                                    title="Cancel"
+                                                    className="p-2 rounded-full hover:bg-rose-50 text-rose-500 hover:text-rose-700 disabled:opacity-50 transition cursor-pointer"
+                                                    title="Delete Appointment"
                                                 >
-                                                    <XCircle className="w-4 h-4" />
+                                                    <Trash2 className="w-4 h-4" />
                                                 </button>
-                                            )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -150,6 +194,16 @@ const Appointments = () => {
                     </div>
                 )}
             </div>
+
+            <ConfirmModal
+                open={!!deleteTarget}
+                title="Delete Appointment?"
+                message={`Are you sure you want to permanently delete the appointment for ${deleteTarget?.patientName || "this patient"} with ${deleteTarget?.doctorName || "Doctor"} on ${deleteTarget?.date || ""} at ${deleteTarget?.time || ""}? This action cannot be undone.`}
+                confirmLabel="Delete"
+                onConfirm={handleDelete}
+                onCancel={() => setDeleteTarget(null)}
+                loading={deleting}
+            />
         </div>
     )
 }

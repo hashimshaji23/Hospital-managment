@@ -3,7 +3,7 @@ import requireClerkAuth from "../middleware/clerkAuth.js";
 import doctorAuth from "../middleware/doctorAuth.js";
 import adminOrDoctorAuth from "../middleware/adminOrDoctorAuth.js";
 
-import { cancelAppointment, confirmPayment, creatAppointment, getAppointments, getAppointmentsByDoctor, getDoctorAppointmentStats, getAppointmentsByPatient, getRegisterUserCount, getStats, updateAppointment } from "../controllers/AppointmentController.js";
+import { cancelAppointment, confirmPayment, creatAppointment, deleteAppointment, getAppointments, getAppointmentsByDoctor, getDoctorAppointmentStats, getAppointmentsByPatient, getRegisterUserCount, getStats, updateAppointment } from "../controllers/AppointmentController.js";
 
 const appointmentRouter = express.Router();
 
@@ -23,5 +23,6 @@ appointmentRouter.get("/doctor/:doctorId", doctorAuth, getAppointmentsByDoctor);
 appointmentRouter.post("/:id/cancel", cancelAppointment);
 appointmentRouter.get("/paitents/count", getRegisterUserCount);
 appointmentRouter.put("/:id", adminOrDoctorAuth, updateAppointment);
+appointmentRouter.delete("/:id", adminOrDoctorAuth, deleteAppointment);
 
 export default appointmentRouter;
