@@ -1,10 +1,10 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { footerStyles as fs } from '../assets/dummyStyles'
 import logoImg from '../assets/logo.png'
 import { Link } from 'react-router-dom'
 import {
   Stethoscope, MapPin, Phone, Mail, Globe, MessageCircle, Camera,
-  Briefcase, Play, ChevronRight, Send, Heart,
+  Briefcase, Play, ChevronRight, Heart,
 } from 'lucide-react'
 
 const quickLinks = [
@@ -15,16 +15,6 @@ const quickLinks = [
 ]
 
 const Footer = () => {
-  const [email, setEmail] = useState("")
-  const [subscribed, setSubscribed] = useState(false)
-
-  const handleSubscribe = (e) => {
-    e.preventDefault()
-    if (!email) return
-    setSubscribed(true)
-    setEmail("")
-  }
-
   return (
     <footer className={fs.footerContainer}>
       <style>{fs.animationStyles}</style>
@@ -108,42 +98,10 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Newsletter */}
+          {/* Social */}
           <div className={fs.newsletterSection}>
-            <h3 className={fs.newsletterTitle}>Stay Updated</h3>
-            <p className={fs.newsletterDescription}>Get health tips and updates in your inbox.</p>
-
-            <form onSubmit={handleSubscribe} className={fs.newsletterForm}>
-              <div className={fs.mobileNewsletterContainer}>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Your email"
-                  className={fs.emailInput}
-                />
-                <button type="submit" className={fs.mobileSubscribeButton}>
-                  <Send className={fs.mobileButtonIcon} />
-                  {subscribed ? "Subscribed!" : "Subscribe"}
-                </button>
-              </div>
-
-              <div className={fs.desktopNewsletterContainer}>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Your email"
-                  className={fs.desktopEmailInput}
-                />
-                <button type="submit" className={fs.desktopSubscribeButton}>
-                  <Send className={fs.desktopButtonIcon} />
-                  <span className={fs.desktopButtonText}>{subscribed ? "Subscribed!" : "Subscribe"}</span>
-                </button>
-              </div>
-            </form>
-
-            <div className={fs.socialContainer}>
+            <h3 className={fs.sectionTitle}>Follow Us</h3>
+            <div className="flex gap-3 justify-center lg:justify-start">
               {[Globe, MessageCircle, Camera, Briefcase, Play].map((Icon, i) => (
                 <a key={i} href="#" className={fs.socialLink}>
                   <span className={fs.socialIconBackground} />
