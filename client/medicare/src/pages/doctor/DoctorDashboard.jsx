@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { dashboardStyles as ds } from '../../assets/dummyStyles'
-import { CalendarCheck, Users, Wallet, Clock3, Phone, RefreshCw, ArrowRight } from 'lucide-react'
+import { CalendarCheck, Users, Wallet, Clock3, Phone, RefreshCw, ArrowRight, Check, X, CircleDot } from 'lucide-react'
 import { api, doctorInfoStore } from '../../utils/api'
 
 const statusClass = (status) => {
@@ -22,38 +22,60 @@ const todayKey = () => {
   return `${yyyy}-${mm}-${dd}`
 }
 
-const AppointmentMiniCard = ({ a }) => (
-  <div className={ds.appointmentCard}>
-    <div className={ds.cardHeader}>
-      <div className={ds.cardAvatar}>
-        <span className={ds.cardAvatarFallback}>{(a.patientName || "?")[0]}</span>
-      </div>
-      <div className={ds.cardContent}>
-        <p className={ds.cardPatientName}>{a.patientName}</p>
-        <p className={ds.cardPatientInfo}>{a.age ? `${a.age} yrs` : ""} {a.gender}</p>
-        <div className={ds.cardPhoneContainer}>
-          <Phone className={ds.cardPhoneIcon} /> {a.mobile}
+const AppointmentMiniCard = ({ a, onUpdateStatus }) => {
+  const locked = a.status === "Completed" || a.status === "Canceled"
+  return (
+    <div className={ds.appointmentCard}>
+      <div className={ds.cardHeader}>
+        <div className={ds.cardAvatar}>
+          <span className={ds.cardAvatarFallback}>{(a.patientName || "?")[0]}</span>
+        </div>
+        <div className={ds.cardContent}>
+          <p className={ds.cardPatientName}>{a.patientName}</p>
+          <p className={ds.cardPatientInfo}>{a.age ? `${a.age} yrs` : ""} {a.gender}</p>
+          <div className={ds.cardPhoneContainer}>
+            <Phone className={ds.cardPhoneIcon} /> {a.mobile}
+          </div>
         </div>
       </div>
-    </div>
-    <div className={ds.dateTimeContainer}>
-      <span className={ds.dateText}>{a.date}</span>
-      <span className={ds.timeText}>{a.time}</span>
-    </div>
-    <div className={ds.cardFooter}>
-      <span className={ds.feeText}>₹{a.fees}</span>
-      <div className={ds.statusContainer}>
-        <span className={`${ds.statusBadgeBase} ${statusClass(a.status)}`}>{a.status}</span>
+      <div className={ds.dateTimeContainer}>
+        <span className={ds.dateText}>{a.date}</span>
+        <span className={ds.timeText}>{a.time}</span>
       </div>
+      <div className={ds.cardFooter}>
+        <span className={ds.feeText}>₹{a.fees}</span>
+        <div className={ds.statusContainer}>
+          <span className={`${ds.statusBadgeBase} ${statusClass(a.status)}`}>{a.status}</span>
+        </div>
+      </div>
+
+      {!locked && onUpdateStatus && (
+        <div className="flex items-center gap-2 mt-3 pt-2.5 border-t border-emerald-100">
+          <button
+            onClick={() => onUpdateStatus(a._id, "Completed")}
+            className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 transition cursor-pointer shadow-xs"
+          >
+            <Check className="w-3.5 h-3.5" /> Complete
+          </button>
+          <button
+            onClick={() => onUpdateStatus(a._id, "Canceled")}
+            className="py-1.5 px-2.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-lg text-xs font-semibold hover:bg-rose-100 transition cursor-pointer"
+            title="Cancel"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
     </div>
-  </div>
-)
+  )
+}
 
 const DoctorDashboard = () => {
-  const doctor = doctorInfoStore.get()
+  const [doctor, setDoctor] = useState(doctorInfoStore.get())
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [togglingAvail, setTogglingAvail] = useState(false)
 
   const load = async () => {
     if (!doctor?._id) {
@@ -64,8 +86,15 @@ const DoctorDashboard = () => {
     setLoading(true)
     setError("")
     try {
-      const res = await api.get(`/appointments/doctor/${doctor._id}?limit=200`)
-      setAppointments(res.appointment || [])
+      const [apptRes, docRes] = await Promise.all([
+        api.get(`/appointments/doctor/${doctor._id}?limit=200`),
+        api.get(`/doctors/${doctor._id}`).catch(() => null),
+      ])
+      setAppointments(apptRes.appointment || [])
+      if (docRes?.data) {
+        doctorInfoStore.set(docRes.data)
+        setDoctor(docRes.data)
+      }
     } catch (err) {
       setError(err.message || "Could not load appointments")
     } finally {
@@ -74,6 +103,31 @@ const DoctorDashboard = () => {
   }
 
   useEffect(() => { load() }, [])
+
+  const handleToggleAvailability = async () => {
+    if (!doctor?._id || togglingAvail) return
+    setTogglingAvail(true)
+    try {
+      const res = await api.post(`/doctors/${doctor._id}/toggle-availability`, {})
+      if (res.data) {
+        doctorInfoStore.set(res.data)
+        setDoctor(res.data)
+      }
+    } catch (err) {
+      setError(err.message || "Could not toggle availability")
+    } finally {
+      setTogglingAvail(false)
+    }
+  }
+
+  const handleStatusChange = async (appointmentId, newStatus) => {
+    try {
+      await api.put(`/appointments/${appointmentId}`, { status: newStatus })
+      await load()
+    } catch (err) {
+      setError(err.message || "Could not update appointment status")
+    }
+  }
 
   const total = appointments.length
   const completed = appointments.filter((a) => a.status === "Completed" || a.status === "Confirmed").length
@@ -89,20 +143,49 @@ const DoctorDashboard = () => {
     .sort((a, b) => String(b.date).localeCompare(String(a.date)))
     .slice(0, 8)
 
+  const isAvailable = (doctor?.availability || "Available").toLowerCase() === "available"
+
   return (
     <div className={ds.pageContainer}>
       <div className={ds.contentWrapper}>
         <div className={ds.headerContainer}>
           <div>
-            <h1 className={ds.headerTitle}>Welcome, Dr. {doctor?.name}</h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className={ds.headerTitle}>Welcome, Dr. {doctor?.name}</h1>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+                {doctor?.specialization || "Doctor"}
+              </span>
+            </div>
             <p className={ds.headerSubtitle}>
-              {doctor?.specialization ? `${doctor.specialization} · ` : ""}Overview of your appointments
+              {doctor?.experience ? `${doctor.experience} exp · ` : ""}Overview of your schedule & patients
             </p>
           </div>
-          <button onClick={load} className={ds.refreshButton}>
-            <RefreshCw className="w-4 h-4 inline mr-1" /> Refresh
-          </button>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleToggleAvailability}
+              disabled={togglingAvail}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold border transition cursor-pointer ${
+                isAvailable
+                  ? "bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100"
+                  : "bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              <span className={`w-2 h-2 rounded-full ${isAvailable ? "bg-emerald-500 animate-pulse" : "bg-gray-400"}`} />
+              {togglingAvail ? "Updating..." : isAvailable ? "Available" : "Unavailable"}
+            </button>
+
+            <button onClick={load} className={ds.refreshButton}>
+              <RefreshCw className={`w-4 h-4 inline mr-1 ${loading ? "animate-spin" : ""}`} /> Refresh
+            </button>
+          </div>
         </div>
+
+        {error && (
+          <div className="mb-4 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-2.5 rounded-xl text-sm">
+            {error}
+          </div>
+        )}
 
         <div className={ds.statsGrid}>
           <div className={ds.statCard}>
@@ -159,12 +242,13 @@ const DoctorDashboard = () => {
               Manage <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
-          {error && <p className="text-rose-600 text-sm mb-4">{error}</p>}
           {loading ? (
             <p className="text-emerald-600">Loading...</p>
           ) : todays.length ? (
             <div className={ds.cardsGrid}>
-              {todays.map((a) => <AppointmentMiniCard key={a._id} a={a} />)}
+              {todays.map((a) => (
+                <AppointmentMiniCard key={a._id} a={a} onUpdateStatus={handleStatusChange} />
+              ))}
             </div>
           ) : (
             <p className="text-emerald-700 text-center py-6">No appointments scheduled for today.</p>
@@ -183,8 +267,12 @@ const DoctorDashboard = () => {
             <p className="text-emerald-600">Loading...</p>
           ) : (
             <div className={ds.cardsGrid}>
-              {recent.map((a) => <AppointmentMiniCard key={a._id} a={a} />)}
-              {!appointments.length && <p className="text-emerald-700 col-span-full text-center py-8">No appointments yet.</p>}
+              {recent.map((a) => (
+                <AppointmentMiniCard key={a._id} a={a} onUpdateStatus={handleStatusChange} />
+              ))}
+              {!appointments.length && (
+                <p className="text-emerald-700 col-span-full text-center py-8">No appointments yet.</p>
+              )}
             </div>
           )}
         </div>

@@ -20,15 +20,38 @@ export const AuthProvider = ({ children }) => {
         setLoading(false)
     }, [])
 
-    const login = async (email, password) => {
-        const res = await api.post("/auth/login", { email, password }, { skipAuth: true })
-        if (res.user && res.user.role !== "admin") {
-            throw new Error("This account does not have admin access.")
+    const login = async (email, password, role = "admin") => {
+        if (role === "doctor") {
+            const res = await api.post("/doctors/login", { email: email.trim(), password }, { skipAuth: true })
+            const docData = res.data || {}
+            const doctorUser = {
+                ...docData,
+                role: "doctor",
+                _id: docData._id || docData.id,
+                id: docData._id || docData.id,
+            }
+            localStorage.setItem("adminToken", res.token)
+            localStorage.setItem("adminUser", JSON.stringify(doctorUser))
+            setUser(doctorUser)
+            return doctorUser
+        } else {
+            const res = await api.post("/auth/login", { email: email.trim(), password }, { skipAuth: true })
+            if (res.user && res.user.role !== "admin") {
+                throw new Error("This account does not have admin access.")
+            }
+            localStorage.setItem("adminToken", res.token)
+            localStorage.setItem("adminUser", JSON.stringify(res.user))
+            setUser(res.user)
+            return res.user
         }
-        localStorage.setItem("adminToken", res.token)
-        localStorage.setItem("adminUser", JSON.stringify(res.user))
-        setUser(res.user)
-        return res.user
+    }
+
+    const updateUser = (updated) => {
+        setUser((prev) => {
+            const next = { ...prev, ...updated }
+            localStorage.setItem("adminUser", JSON.stringify(next))
+            return next
+        })
     }
 
     const logout = () => {
@@ -37,8 +60,20 @@ export const AuthProvider = ({ children }) => {
         setUser(null)
     }
 
+    const isAdmin = user?.role === "admin"
+    const isDoctor = user?.role === "doctor"
+
     return (
-        <AuthContext.Provider value={{ user, loading, login, logout, isAuthenticated: !!user }}>
+        <AuthContext.Provider value={{
+            user,
+            loading,
+            login,
+            logout,
+            updateUser,
+            isAuthenticated: !!user,
+            isAdmin,
+            isDoctor,
+        }}>
             {children}
         </AuthContext.Provider>
     )

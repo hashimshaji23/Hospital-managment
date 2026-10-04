@@ -462,6 +462,11 @@ export const updateAppointment = async (req, res) => {
             update.rescheduledTo = { date: body.date, time: body.time };
         }
 
+        if (body.status === "Completed" && appt.payment && appt.payment.status !== "Paid") {
+            update["payment.status"] = "Paid";
+            update.paidAt = new Date();
+        }
+
         const updated = await Appointment.findByIdAndUpdate(id, update,
             { new: true, runValidators: true }
         ).populate({ path: "doctorId", select: "name imageUrl" }).lean();
@@ -572,9 +577,62 @@ export async function getRegisterUserCount(req, res) {
         return res.json({ success: true, totalUsers });
     } catch (err) {
         console.error("getRegisterUserCount Error:", err);
+// to get doctor appointments stats
+export const getDoctorAppointmentStats = async (req, res) => {
+    try {
+        const { doctorId } = req.params;
+
+        if (!doctorId) return res.status(400).json({
+            success: false,
+            message: "Doctor Id required"
+        });
+
+        if (!req.isAdmin) {
+            const selfId = String(req.doctor?._id || req.doctor?.id || "");
+            if (!selfId || selfId !== String(doctorId)) {
+                return res.status(403).json({
+                    success: false,
+                    message: "Not authorized to view these stats"
+                });
+            }
+        }
+
+        const all = await Appointment.find({ doctorId }).lean();
+        const total = all.length;
+        const completed = all.filter(a => a.status === "Completed").length;
+        const confirmed = all.filter(a => a.status === "Confirmed").length;
+        const pending = all.filter(a => a.status === "Pending").length;
+        const canceled = all.filter(a => a.status === "Canceled").length;
+        const earnings = all
+            .filter(a => a.status === "Completed" || a.status === "Confirmed")
+            .reduce((sum, a) => sum + (Number(a.fees) || 0), 0);
+
+        const d = new Date();
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        const todayStr = `${yyyy}-${mm}-${dd}`;
+        const todays = all.filter(a => a.date === todayStr);
+        const uniquePatients = new Set(all.map(a => a.mobile || a.patientName).filter(Boolean)).size;
+
+        return res.json({
+            success: true,
+            stats: {
+                total,
+                completed,
+                confirmed,
+                pending,
+                canceled,
+                earnings,
+                todayCount: todays.length,
+                uniquePatients,
+            }
+        });
+    } catch (err) {
+        console.error("getDoctorAppointmentStats Error:", err);
         return res.status(500).json({ success: false, message: "Server error" });
     }
-}
+};
 
 export default {
     getAppointments,
@@ -585,5 +643,6 @@ export default {
     cancelAppointment,
     getStats,
     getAppointmentsByDoctor,
+    getDoctorAppointmentStats,
     getRegisterUserCount,
 };
