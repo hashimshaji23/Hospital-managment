@@ -7,11 +7,12 @@ import { api, doctorTokenStore, doctorInfoStore } from '../../utils/api'
 
 const DoctorLogin = () => {
   const navigate = useNavigate()
-  if (doctorTokenStore.get()) return <Navigate to="/doctor/dashboard" replace />
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+
+  if (doctorTokenStore.get()) return <Navigate to="/doctor/dashboard" replace />
 
   const handleSubmit = async (e) => {
     e.preventDefault()

@@ -2,9 +2,8 @@ import React, { useState } from 'react'
 import { navbarStyles as ns } from "../assets/dummyStyles"
 import logoImg from '../assets/logo.png'
 import { Link, NavLink } from 'react-router-dom'
-import { Menu, X, UserCog, LogIn, CalendarCheck } from 'lucide-react'
+import { Menu, X, LogIn, CalendarCheck } from 'lucide-react'
 import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/clerk-react'
-import { doctorTokenStore } from '../utils/api'
 
 const navLinks = [
     { name: "Home", path: "/" },
@@ -15,7 +14,6 @@ const navLinks = [
 
 const Navbar = () => {
     const [open, setOpen] = useState(false)
-    const doctorLoggedIn = Boolean(doctorTokenStore.get())
 
     return (
         <header className={ns.navbarContainer}>
@@ -57,11 +55,6 @@ const Navbar = () => {
 
                     {/* Right side */}
                     <div className={ns.rightContainer}>
-                        <Link to={doctorLoggedIn ? "/doctor/dashboard" : "/doctor-login"} className={ns.doctorAdminButton}>
-                            <UserCog className={ns.doctorAdminIcon} />
-                            <span className={ns.doctorAdminText}>{doctorLoggedIn ? "Doctor Portal" : "Doctor Login"}</span>
-                        </Link>
-
                         <SignedIn>
                             <Link to="/my-appointments" className={ns.doctorAdminButton}>
                                 <CalendarCheck className={ns.doctorAdminIcon} />
@@ -117,14 +110,6 @@ const Navbar = () => {
                                 <UserButton afterSignOutUrl="/" />
                             </div>
                         </SignedIn>
-
-                        <Link
-                            to={doctorLoggedIn ? "/doctor/dashboard" : "/doctor-login"}
-                            onClick={() => setOpen(false)}
-                            className={ns.mobileDoctorAdminButton}
-                        >
-                            <UserCog className="w-4 h-4" /> {doctorLoggedIn ? "Doctor Portal" : "Doctor Login"}
-                        </Link>
 
                         <SignedOut>
                             <div className={ns.mobileLoginContainer}>
